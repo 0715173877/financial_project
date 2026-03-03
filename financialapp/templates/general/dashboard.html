@@ -1,0 +1,232 @@
+{% extends 'general/base.html' %}
+{% load humanize %}
+
+{% block title %}Dashboard - Financial App{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Key Metrics -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-8">
+                        <div class="text-white-50 small">Net Worth</div>
+                        <div class="h5 mb-0 text-white">TZS {{ net_worth|floatformat:2|intcomma }}</div>
+                    </div>
+                    <div class="col-4 text-end">
+                        <i class="fas fa-piggy-bank fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-8">
+                        <div class="text-white-50 small">Monthly Income</div>
+                        <div class="h5 mb-0 text-white">TZS {{ monthly_income|floatformat:2|intcomma }}</div>
+                    </div>
+                    <div class="col-4 text-end">
+                        <i class="fas fa-money-bill-wave fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-8">
+                        <div class="text-white-50 small">Monthly Expenses</div>
+                        <div class="h5 mb-0 text-white">TZS {{ monthly_expenses|floatformat:2|intcomma }}</div>
+                    </div>
+                    <div class="col-4 text-end">
+                        <i class="fas fa-receipt fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-8">
+                        <div class="text-white-50 small">Cash Flow</div>
+                        <div class="h5 mb-0 text-white">TZS {{ cash_flow|floatformat:2|intcomma }}</div>
+                    </div>
+                    <div class="col-4 text-end">
+                        <i class="fas fa-chart-line fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Income vs Expenses Chart -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Income vs Expenses</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="incomeExpenseChart" height="140"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Asset Allocation -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Asset Allocation</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="assetChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Transactions -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Recent Income</h5>
+                <a href="{% url 'financialapp:income_list' %}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for income in recent_income %}
+                            <tr>
+                                <td>{{ income.income_type.name }}</td>
+                                <td class="text-success">TZS {{ income.amount|floatformat:2|intcomma }}</td>
+                                <td>{{ income.date_received }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">No income records found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Expenses -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Recent Expenses</h5>
+                <a href="{% url 'financialapp:expense_list' %}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Amount</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in recent_expenses %}
+                            <tr>
+                                <td>{{ expense.expense_type.name }}</td>
+                                <td class="text-danger">TZS {{ expense.amount|floatformat:2|intcomma }}</td>
+                                <td>{{ expense.date_incurred }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">No expense records found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Income vs Expenses Chart
+const incomeExpenseCtx = document.getElementById('incomeExpenseChart').getContext('2d');
+new Chart(incomeExpenseCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ barchart.months|safe }},
+        datasets: [
+            {
+                label: 'Income',
+                data: {{ barchart.income|safe }},
+                backgroundColor: 'rgba(40, 167, 69, 0.8)',
+            },
+            {
+                label: 'Expenses',
+                data: {{ barchart.expense|safe }},
+                backgroundColor: 'rgba(220, 53, 69, 0.8)',
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return 'TZS ' + value.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Asset Allocation Chart
+const assetCtx = document.getElementById('assetChart').getContext('2d');
+new Chart(assetCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ asset_chart.asset_type|safe }},
+        datasets: [{
+            data: {{ asset_chart.asset_value|safe }},
+            backgroundColor: {{ asset_chart.colors|safe }}
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}All Reports - Financial App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>All Generated Reports</h2>
+    <a href="{% url 'financial_reports' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Generate New Report
+    </a>
+</div>
+
+<!-- Report Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h3>{{ total_reports }}</h3>
+                <p class="mb-0">Total Reports</p>
+            </div>
+        </div>
+    </div>
+    {% for report_type in report_types %}
+    <div class="col-md-3">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <h3 class="text-primary">{{ report_type.count }}</h3>
+                <p class="mb-0 text-muted">
+                    {% if report_type.report_type == 'balance_sheet' %}Balance Sheets
+                    {% elif report_type.report_type == 'income_statement' %}Income Statements
+                    {% elif report_type.report_type == 'cash_flow' %}Cash Flow
+                    {% elif report_type.report_type == 'comprehensive' %}Comprehensive
+                    {% else %}{{ report_type.report_type|title }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Reports Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-file-alt me-2"></i>Generated Reports
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if page_obj %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Report Type</th>
+                        <th>Period</th>
+                        <th>Generated</th>
+                        <th>Net Worth</th>
+                        <th>Net Income</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in page_obj %}
+                    <tr>
+                        <td>
+                            <span class="badge 
+                                {% if report.report_type == 'balance_sheet' %}bg-primary
+                                {% elif report.report_type == 'income_statement' %}bg-success
+                                {% elif report.report_type == 'cash_flow' %}bg-info
+                                {% else %}bg-warning{% endif %}">
+                                {{ report.get_report_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {{ report.period_start|date:"M d, Y" }}<br>
+                            <small class="text-muted">to {{ report.period_end|date:"M d, Y" }}</small>
+                        </td>
+                        <td>{{ report.generated_at|date:"M d, Y H:i" }}</td>
+                        <td>
+                            {% if report.report_type == 'balance_sheet' or report.report_type == 'comprehensive' %}
+                                TZS {{ report.data.net_worth|intcomma }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if report.report_type == 'income_statement' or report.report_type == 'comprehensive' %}
+                                <span class="{% if report.data.net_income >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    TZS {{ report.data.net_income|intcomma }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'view_report' report.id %}" class="btn btn-outline-primary" title="View Report">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
+                                    <span class="visually-hidden">Toggle Dropdown</span>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'export_report' report.id %}?format=pdf">
+                                            <i class="fas fa-file-pdf text-danger me-2"></i>Export PDF
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'export_report' report.id %}?format=csv">
+                                            <i class="fas fa-file-csv text-success me-2"></i>Export CSV
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'export_report' report.id %}?format=json">
+                                            <i class="fas fa-file-code text-warning me-2"></i>Export JSON
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="{% url 'delete_report' report.id %}">
+                                            <i class="fas fa-trash me-2"></i>Delete
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Reports pagination">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Previous</span>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Next</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No reports generated yet</h5>
+            <p class="text-muted">Generate your first financial report to see it here.</p>
+            <a href="{% url 'financial_reports' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Generate Report
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

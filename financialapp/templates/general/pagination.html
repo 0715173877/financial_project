@@ -1,0 +1,45 @@
+<!-- Pagination Controls -->
+        {% if obj.has_other_pages %}
+        <nav aria-label="obj pagination">
+            <ul class="pagination justify-content-center mb-0">
+                <!-- Previous Page -->
+                {% if obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ obj.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;</span>
+                </li>
+                {% endif %}
+
+                <!-- Page Numbers -->
+                {% for num in obj.paginator.page_range %}
+                    {% if obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > obj.number|add:'-3' and num < obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Next Page -->
+                {% if obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ obj.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}

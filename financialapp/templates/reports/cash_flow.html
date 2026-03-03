@@ -1,0 +1,504 @@
+{% extends 'general/base.html' %}
+{% load humanize %}
+{% load mathfilters %}
+
+{% block title %}Cash Flow Statement - Financial App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Cash Flow Statement</h2>
+    <div>
+        <div class="btn-group">
+            <button type="button" class="btn btn-danger dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-download me-2"></i>Export
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'financialapp:export_report' report_id %}?format=pdf">
+                    <i class="fas fa-file-pdf text-danger me-2"></i>PDF Document
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'financialapp:export_report' report_id %}?format=csv">
+                    <i class="fas fa-file-csv text-success me-2"></i>CSV Spreadsheet
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'financialapp:export_report' report_id %}?format=json">
+                    <i class="fas fa-file-code text-warning me-2"></i>JSON Data
+                </a></li>
+            </ul>
+        </div>
+        <a href="{% url 'financialapp:financial_reports' %}" class="btn btn-secondary ms-2">
+            <i class="fas fa-arrow-left me-2"></i>Back to Reports
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-money-bill-wave me-2"></i>Cash Flow Statement
+                </h4>
+                <p class="mb-0 opacity-75">
+                    For the period {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <span class="badge bg-light text-dark fs-6">
+                    {{ report_data.net_cash_flow|floatformat:0|floatformat:2|intcomma }} TZS Net Flow
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Cash Flow Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-arrow-down fa-2x mb-2"></i>
+                        <h6>Cash Inflows</h6>
+                        <h4 class="mb-0">TZS {{ report_data.operating_activities.income|floatformat:2|intcomma }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-arrow-up fa-2x mb-2"></i>
+                        <h6>Cash Outflows</h6>
+                        <h4 class="mb-0">TZS {{ report_data.operating_activities.expenses|floatformat:2|intcomma }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-exchange-alt fa-2x mb-2"></i>
+                        <h6>Net Operating</h6>
+                        <h4 class="mb-0">TZS {{ report_data.operating_activities.net_cash|floatformat:2|intcomma }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card {% if report_data.net_cash_flow >= 0 %}bg-success{% else %}bg-warning{% endif %} text-white">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-chart-line fa-2x mb-2"></i>
+                        <h6>Net Cash Flow</h6>
+                        <h4 class="mb-0">TZS {{ report_data.net_cash_flow|floatformat:2|intcomma }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Cash Flow Statement -->
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Operating Activities -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-business-time me-2"></i>Cash Flows from Operating Activities
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="ps-4">Cash received from income:</td>
+                                <td class="text-end text-success">TZS {{ report_data.operating_activities.income|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td class="ps-4">Cash paid for expenses:</td>
+                                <td class="text-end text-danger">(TZS {{ report_data.operating_activities.expenses|floatformat:2|intcomma }})</td>
+                            </tr>
+                            <tr class="border-top">
+                                <td class="ps-3"><strong>Net Cash from Operating Activities</strong></td>
+                                <td class="text-end"><strong class="text-primary">TZS {{ report_data.operating_activities.net_cash|floatformat:2|intcomma }}</strong></td>
+                            </tr>
+                        </table>
+                        
+                        <!-- Operating Cash Flow Analysis -->
+                        <div class="mt-3 p-3 bg-light rounded">
+                            <h6 class="text-primary">Operating Cash Flow Analysis</h6>
+                            <div class="progress mb-2" style="height: 20px;">
+                                {% with margin=report_data.operating_activities.net_cash|div:report_data.operating_activities.income|mul:100 %}
+                                <div class="progress-bar bg-primary" style="width: {{ margin }}%">
+                                    {{ margin|floatformat:1 }}%
+                                </div>
+                                {% endwith %}
+                            </div>
+                            <small class="text-muted">
+                                Operating Cash Flow Margin: 
+                                {% with margin=report_data.operating_activities.net_cash|div:report_data.operating_activities.income|mul:100 %}
+                                {{ margin|floatformat:1 }}% of income remains as operating cash flow
+                                {% endwith %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Investing Activities -->
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-line me-2"></i>Cash Flows from Investing Activities
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="ps-4">Purchase/sale of assets:</td>
+                                <td class="text-end {% if report_data.investing_activities >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {% if report_data.investing_activities >= 0 %}
+                                    TZS {{ report_data.investing_activities|floatformat:2|intcomma }}
+                                    {% else %}
+                                    (TZS {{ report_data.investing_activities|abs|floatformat:2|intcomma }})
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr class="border-top">
+                                <td class="ps-3"><strong>Net Cash from Investing Activities</strong></td>
+                                <td class="text-end"><strong class="text-warning">TZS {{ report_data.investing_activities|floatformat:2|intcomma }}</strong></td>
+                            </tr>
+                        </table>
+                        
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                {% if report_data.investing_activities > 0 %}
+                                Positive investing activities indicate asset sales or investment income.
+                                {% elif report_data.investing_activities < 0 %}
+                                Negative investing activities indicate asset purchases or investments.
+                                {% else %}
+                                No significant investing activities during this period.
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financing Activities -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-hand-holding-usd me-2"></i>Cash Flows from Financing Activities
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="ps-4">Loan repayments:</td>
+                                <td class="text-end text-danger">(TZS {{ report_data.financing_activities|abs|floatformat:2|intcomma }})</td>
+                            </tr>
+                            <tr class="border-top">
+                                <td class="ps-3"><strong>Net Cash from Financing Activities</strong></td>
+                                <td class="text-end"><strong class="text-success">TZS {{ report_data.financing_activities|floatformat:2|intcomma }}</strong></td>
+                            </tr>
+                        </table>
+                        
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Financing activities typically include loan proceeds (positive) and repayments (negative).
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Net Cash Flow Summary -->
+                <div class="card mb-4">
+                    <div class="card-header {% if report_data.net_cash_flow >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-calculator me-2"></i>Net Increase in Cash and Cash Equivalents
+                        </h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h2 class="{% if report_data.net_cash_flow >= 0 %}text-success{% else %}text-danger{% endif %} mb-0">
+                            TZS {{ report_data.net_cash_flow|floatformat:2|intcomma }}
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            {% if report_data.net_cash_flow > 0 %}
+                            <i class="fas fa-arrow-up text-success me-1"></i>
+                            Positive cash flow - Your cash position improved during this period
+                            {% else %}
+                            <i class="fas fa-arrow-down text-danger me-1"></i>
+                            Negative cash flow - Your cash position decreased during this period
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar - Analysis & Metrics -->
+            <div class="col-lg-4">
+                <!-- Cash Flow Health -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-heartbeat me-2"></i>Cash Flow Health
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% if report_data.operating_activities.net_cash > 0 %}
+                        <div class="text-center text-success mb-3">
+                            <i class="fas fa-check-circle fa-3x mb-2"></i>
+                            <h6>Healthy Operating Cash Flow</h6>
+                        </div>
+                        <p class="small text-muted">
+                            Your core operations are generating positive cash flow, which is essential for long-term financial stability.
+                        </p>
+                        {% else %}
+                        <div class="text-center text-warning mb-3">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-2"></i>
+                            <h6>Operating Cash Flow Concern</h6>
+                        </div>
+                        <p class="small text-muted">
+                            Your operating activities are not generating sufficient cash. Consider reviewing expenses or increasing income.
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Key Metrics -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>Key Metrics
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <small class="text-muted">Operating Cash Flow Margin</small>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Efficiency</span>
+                                <strong class="text-primary">
+                                    {% with margin=report_data.operating_activities.net_cash|div:report_data.operating_activities.income|mul:100 %}
+                                    {{ margin|floatformat:1 }}%
+                                    {% endwith %}
+                                </strong>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <small class="text-muted">Cash Flow Coverage</small>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Debt Service</span>
+                                <strong class="{% if report_data.operating_activities.net_cash >= report_data.financing_activities|abs %}text-success{% else %}text-warning{% endif %}">
+                                    {% with coverage=report_data.operating_activities.net_cash|div:report_data.financing_activities|abs|default:0 %}
+                                    {{ coverage|floatformat:1 }}x
+                                    {% endwith %}
+                                </strong>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <small class="text-muted">Cash Flow Trend</small>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Direction</span>
+                                <strong class="{% if report_data.net_cash_flow >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {% if report_data.net_cash_flow >= 0 %}Positive{% else %}Negative{% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-lightbulb me-2"></i>Recommendations
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% if report_data.net_cash_flow > 0 %}
+                        <div class="alert alert-success small mb-2">
+                            <i class="fas fa-check me-2"></i>
+                            <strong>Strong Position:</strong> Consider investing surplus cash or building emergency funds.
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning small mb-2">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Cash Flow Challenge:</strong> Review expenses and explore income opportunities.
+                        </div>
+                        {% endif %}
+                        
+                        {% if report_data.operating_activities.net_cash < 0 %}
+                        <div class="alert alert-danger small mb-2">
+                            <i class="fas fa-fire me-2"></i>
+                            <strong>Operating Deficit:</strong> Core operations need immediate attention.
+                        </div>
+                        {% endif %}
+                        
+                        <ul class="small text-muted mb-0">
+                            <li>Monitor cash flow monthly</li>
+                            <li>Maintain 3-6 months of expenses in cash</li>
+                            <li>Plan for large upcoming expenses</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Period Information -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Report Information
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div class="mb-2">
+                                <strong>Period:</strong><br>
+                                {{ start_date|date:"M j, Y" }} to {{ end_date|date:"M j, Y" }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Duration:</strong><br>
+                                {{ start_date|timesince:end_date }}
+                            </div>
+                            <div>
+                                <strong>Generated:</strong><br>
+                                {{ report.generated_at|date:"M j, Y \\a\\t g:i A" }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cash Flow Chart -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-area me-2"></i>Cash Flow Visualization
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="cashFlowChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('cashFlowChart').getContext('2d');
+    
+    // Prepare data for the chart
+    const cashFlowData = {
+        labels: ['Operating', 'Investing', 'Financing', 'Net Flow'],
+        datasets: [{
+            label: 'Cash Flow (TZS)',
+            data: [
+                {{ report_data.operating_activities.net_cash }},
+                {{ report_data.investing_activities }},
+                {{ report_data.financing_activities }},
+                {{ report_data.net_cash_flow }}
+            ],
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)',    // Operating - Blue
+                'rgba(255, 206, 86, 0.8)',    // Investing - Yellow
+                'rgba(75, 192, 192, 0.8)',    // Financing - Teal
+                {% if report_data.net_cash_flow >= 0 %}
+                'rgba(40, 167, 69, 0.8)'      // Positive Net - Green
+                {% else %}
+                'rgba(220, 53, 69, 0.8)'      // Negative Net - Red
+                {% endif %}
+            ],
+            borderColor: [
+                'rgb(54, 162, 235)',
+                'rgb(255, 206, 86)',
+                'rgb(75, 192, 192)',
+                {% if report_data.net_cash_flow >= 0 %}
+                'rgb(40, 167, 69)'
+                {% else %}
+                'rgb(220, 53, 69)'
+                {% endif %}
+            ],
+            borderWidth: 2
+        }]
+    };
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: cashFlowData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += 'TZS ' + Math.abs(context.parsed.y).toLocaleString();
+                                if (context.parsed.y < 0) {
+                                    label += ' (Outflow)';
+                                } else {
+                                    label += ' (Inflow)';
+                                }
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'TZS ' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Add animation to cards on load
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+.table-borderless td {
+    border: none;
+    padding: 0.5rem 0.25rem;
+}
+.bg-light-success {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+}
+.bg-light-danger {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+.bg-light-warning {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+</style>
+{% endblock %}

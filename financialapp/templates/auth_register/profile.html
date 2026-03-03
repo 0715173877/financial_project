@@ -1,0 +1,313 @@
+{% extends 'general/base.html' %}
+{% load humanize %}
+
+{% block title %}Profile - Financial App{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Left Column - User Info -->
+    <div class="col-lg-4 mb-4">
+        <!-- User Card -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user me-2"></i>Profile Information
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <div class="avatar-placeholder bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" 
+                         style="width: 80px; height: 80px; font-size: 2rem;">
+                        {{ user.username|first|upper }}
+                    </div>
+                </div>
+                <h4 class="mb-1">{{ user.get_full_name|default:user.username }}</h4>
+                <p class="text-muted mb-3">@{{ user.username }}</p>
+                
+                <div class="row text-start">
+                    <div class="col-12 mb-2">
+                        <strong><i class="fas fa-envelope me-2"></i>Email:</strong>
+                        <span class="float-end">{{ user.email|default:"Not set" }}</span>
+                    </div>
+                    <div class="col-12 mb-2">
+                        <strong><i class="fas fa-calendar me-2"></i>Member since:</strong>
+                        <span class="float-end">{{ user.date_joined|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="col-12 mb-2">
+                        <strong><i class="fas fa-sign-in-alt me-2"></i>Last login:</strong>
+                        <span class="float-end">{{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</span>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                    <i class="fas fa-edit me-2"></i>Edit Profile
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Quick Stats
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Total Records:</span>
+                    <strong class="text-primary">{{ total_records }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Income Sources:</span>
+                    <strong class="text-success">{{ income_count }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Expense Categories:</span>
+                    <strong class="text-danger">{{ expense_count }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>Assets Owned:</span>
+                    <strong class="text-info">{{ asset_count }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column - Financial Overview & Settings -->
+    <div class="col-lg-8">
+        <!-- Financial Overview -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Financial Overview
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">Net Worth</h6>
+                                <h3>TZS {{ net_worth|intcomma }}</h3>
+                                <small>Total Assets: TZS {{ total_assets|intcomma }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">Monthly Cash Flow</h6>
+                                <h3>TZS {{ monthly_cash_flow|intcomma }}</h3>
+                                <small>Income: TZS {{ monthly_income|intcomma }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Progress Bars -->
+                <div class="mt-4">
+                    <h6>Financial Health</h6>
+                    
+                    <!-- Savings Rate -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Savings Rate</span>
+                            <span>{{ savings_rate|floatformat:1 }}%</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-success" style="width: {{ savings_rate }}%"></div>
+                        </div>
+                        <small class="text-muted">
+                            {% if savings_rate >= 20 %}
+                            Excellent! You're saving more than 20% of your income.
+                            {% elif savings_rate >= 10 %}
+                            Good! You're on track with your savings.
+                            {% else %}
+                            Consider increasing your savings rate.
+                            {% endif %}
+                        </small>
+                    </div>
+                    
+                    <!-- Debt-to-Income Ratio -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Debt-to-Income Ratio</span>
+                            <span>{{ debt_to_income|floatformat:1 }}%</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar {% if debt_to_income < 35 %}bg-success{% elif debt_to_income < 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                 style="width: {{ debt_to_income }}%"></div>
+                        </div>
+                        <small class="text-muted">
+                            {% if debt_to_income < 35 %}
+                            Healthy debt level.
+                            {% elif debt_to_income < 50 %}
+                            Manageable debt level.
+                            {% else %}
+                            High debt level - consider debt reduction.
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Settings -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cog me-2"></i>Account Settings
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-lock me-2"></i>
+                            Change Password
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-bell me-2"></i>
+                            Notification Settings
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-download me-2"></i>
+                            Export Data
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-palette me-2"></i>
+                            Appearance
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center text-danger">
+                        <div>
+                            <i class="fas fa-trash me-2"></i>
+                            Delete Account
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history me-2"></i>Recent Activity
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_activity %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for activity in recent_activity %}
+                            <tr>
+                                <td>{{ activity.date|date:"M d" }}</td>
+                                <td>
+                                    <span class="badge bg-{{ activity.badge_color }}">
+                                        {{ activity.type }}
+                                    </span>
+                                </td>
+                                <td>{{ activity.description }}</td>
+                                <td class="{% if activity.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    TZS {{ activity.amount|intcomma }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0">No recent activity</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'financialapp:profile_update' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">First Name</label>
+                        <input type="text" name="first_name" class="form-control" 
+                               value="{{ user.first_name|default:'' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" name="last_name" class="form-control" 
+                               value="{{ user.last_name|default:'' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" 
+                               value="{{ user.email|default:'' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control" 
+                               value="{{ user.username }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Add some interactive features
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate progress bars when they come into view
+    const progressBars = document.querySelectorAll('.progress-bar');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const progressBar = entry.target;
+                const width = progressBar.style.width;
+                progressBar.style.width = '0%';
+                setTimeout(() => {
+                    progressBar.style.width = width;
+                }, 100);
+            }
+        });
+    });
+
+    progressBars.forEach(bar => observer.observe(bar));
+});
+</script>
+{% endblock %}

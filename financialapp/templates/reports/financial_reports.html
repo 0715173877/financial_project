@@ -1,0 +1,178 @@
+{% extends 'general/base.html' %}
+{% load humanize %}
+
+{% block title %}Financial Reports - Financial App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Financial Reports</h2>
+    <div>
+        <a href="{% url 'financialapp:financial_reports' %}" class="btn btn-outline-primary">
+            <i class="fas fa-list me-2"></i>View All Reports
+        </a>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h5 class="card-title">Generate New Report</h5>
+                        <p class="card-text text-muted mb-0">
+                            Create professional financial reports for analysis, planning, or sharing with advisors.
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#quickReportModal">
+                            <i class="fas fa-bolt me-2"></i>Quick Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Generation Cards -->
+<div class="row">
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-balance-scale fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Balance Sheet</h5>
+                <p class="card-text text-muted">Snapshot of your financial position at a specific date</p>
+                <div class="mt-3">
+                    <a href="{% url 'financialapp:generate_balance_sheet' %}" class="btn btn-primary btn-sm">Generate</a>
+                    <small class="d-block text-muted mt-1">Assets = Liabilities + Net Worth</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Income Statement</h5>
+                <p class="card-text text-muted">Your income and expenses over a period</p>
+                <div class="mt-3">
+                    <a href="{% url 'financialapp:generate_income_statement' %}" class="btn btn-success btn-sm">Generate</a>
+                    <small class="d-block text-muted mt-1">Income - Expenses = Net Income</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-money-bill-wave fa-3x text-info mb-3"></i>
+                <h5 class="card-title">Cash Flow</h5>
+                <p class="card-text text-muted">Cash movement analysis</p>
+                <div class="mt-3">
+                    <a href="{% url 'financialapp:generate_cash_flow' %}" class="btn btn-info btn-sm">Generate</a>
+                    <small class="d-block text-muted mt-1">Operating, Investing, Financing</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-file-alt fa-3x text-warning mb-3"></i>
+                <h5 class="card-title">Comprehensive</h5>
+                <p class="card-text text-muted">Full financial analysis with recommendations</p>
+                <div class="mt-3">
+                    <a href="{% url 'financialapp:generate_comprehensive' %}" class="btn btn-warning btn-sm">Generate</a>
+                    <small class="d-block text-muted mt-1">Complete analysis + insights</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Reports -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history me-2"></i>Recently Generated Reports
+                </h5>
+                <a href="{% url 'financialapp:financial_reports' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_reports %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Report Type</th>
+                                <th>Period</th>
+                                <th>Generated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in recent_reports %}
+                            <tr>
+                                <td>
+                                    <span class="badge 
+                                        {% if report.report_type == 'balance_sheet' %}bg-primary
+                                        {% elif report.report_type == 'income_statement' %}bg-success
+                                        {% elif report.report_type == 'cash_flow' %}bg-info
+                                        {% else %}bg-warning{% endif %}">
+                                        {{ report.get_report_type_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ report.period_start|date:"M d" }} - {{ report.period_end|date:"M d, Y" }}
+                                </td>
+                                <td>{{ report.generated_at|date:"M d, H:i" }}</td>
+                                <td>
+                                    <a href="{% url 'financialapp:view_report' report.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0">No reports generated yet. Generate your first report above!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Report Modal -->
+<div class="modal fade" id="quickReportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quick Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Generate a comprehensive report for the last 30 days:</p>
+                <form method="post" action="{% url 'financialapp:generate_comprehensive' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="end_date" value="{{ current_date|date:'Y-m-d' }}">
+                    <input type="hidden" name="format" value="html">
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-bolt me-2"></i>Generate Comprehensive Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

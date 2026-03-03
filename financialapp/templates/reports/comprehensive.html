@@ -1,0 +1,155 @@
+{% extends 'general/base.html' %}
+{% load humanize %}
+{% load mathfilters %}
+
+{% block title %}Comprehensive Financial Report - Financial App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Comprehensive Financial Report</h2>
+    <div>
+        <div class="btn-group">
+            <button type="button" class="btn btn-danger dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-download me-2"></i>Export
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'financialapp:export_report' report_id %}?format=pdf">PDF</a></li>
+                <li><a class="dropdown-item" href="{% url 'financialapp:export_report' report_id %}?format=csv">CSV</a></li>
+                <li><a class="dropdown-item" href="{% url 'financialapp:export_report' report_id %}?format=json">JSON</a></li>
+            </ul>
+        </div>
+        <a href="{% url 'financialapp:financial_reports' %}" class="btn btn-secondary ms-2">
+            <i class="fas fa-arrow-left me-2"></i>Back to Reports
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-warning text-white">
+        <h4 class="card-title mb-0">
+            Comprehensive Financial Report - {{ start_date|date:"M d, Y" }} to {{ end_date|date:"M d, Y" }}
+        </h4>
+    </div>
+    <div class="card-body">
+        <!-- Executive Summary -->
+        <div class="mb-4">
+            <h5 class="text-warning mb-3">EXECUTIVE SUMMARY</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Net Worth</h6>
+                            <h4 class="text-primary">TZS {{ report_data.balance_sheet.net_worth|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Net Income</h6>
+                            <h4 class="text-success">TZS {{ report_data.income_statement.net_income|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Cash Flow</h6>
+                            <h4 class="text-info">TZS {{ report_data.cash_flow.net_cash_flow|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="card-title">Savings Rate</h6>
+                            <h4 class="text-warning">{{ report_data.income_statement.savings_rate|floatformat:1 }}%</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Ratios -->
+        <div class="mb-4">
+            <h5 class="text-warning mb-3">FINANCIAL HEALTH INDICATORS</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Ratio</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                            <th>Interpretation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Debt-to-Asset Ratio</td>
+                            <td>{{ report_data.financial_ratios.debt_to_asset|floatformat:1 }}%</td>
+                            <td>
+                                <span class="badge {% if report_data.financial_ratios.debt_to_asset < 30 %}bg-success{% elif report_data.financial_ratios.debt_to_asset < 50 %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {% if report_data.financial_ratios.debt_to_asset < 30 %}Excellent
+                                    {% elif report_data.financial_ratios.debt_to_asset < 50 %}Good
+                                    {% elif report_data.financial_ratios.debt_to_asset < 70 %}Fair
+                                    {% else %}Concerning
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>Measures what percentage of assets is financed by debt</td>
+                        </tr>
+                        <tr>
+                            <td>Savings Rate</td>
+                            <td>{{ report_data.financial_ratios.savings_rate|floatformat:1 }}%</td>
+                            <td>
+                                <span class="badge {% if report_data.financial_ratios.savings_rate >= 20 %}bg-success{% elif report_data.financial_ratios.savings_rate >= 15 %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {% if report_data.financial_ratios.savings_rate >= 20 %}Excellent
+                                    {% elif report_data.financial_ratios.savings_rate >= 15 %}Good
+                                    {% elif report_data.financial_ratios.savings_rate >= 10 %}Fair
+                                    {% else %}Needs Improvement
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>Percentage of income saved after expenses</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="mb-4">
+            <h5 class="text-warning mb-3">RECOMMENDATIONS</h5>
+            <div class="card bg-light">
+                <div class="card-body">
+                    {% if report_data.recommendations %}
+                    <ul class="mb-0">
+                        {% for recommendation in report_data.recommendations %}
+                        <li>{{ recommendation }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-success mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Your financial position appears healthy. Continue with your current strategy!
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Metadata -->
+        <div class="mt-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Comprehensive report generated on {{ report.generated_at|date:"M d, Y \\a\\t H:i" }}
+                        • Analysis period: {{ report.period_start|date:"M d, Y" }} to {{ report.period_end|date:"M d, Y" }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

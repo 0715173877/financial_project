@@ -1,0 +1,151 @@
+{% extends 'general/base.html' %}
+{% load humanize %}
+{% load mathfilters %}
+
+{% block title %}Balance Sheet - Financial App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Balance Sheet</h2>
+    <div>
+        <a href="{% url 'financialapp:export_report' report_id %}?format=pdf" class="btn btn-danger">
+            <i class="fas fa-file-pdf me-2"></i>Export PDF
+        </a>
+        <a href="{% url 'financialapp:financial_reports' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Reports
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h4 class="card-title mb-0">
+            Balance Sheet as of {{ end_date|date:"F d, Y" }}
+        </h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <!-- Assets -->
+            <div class="col-md-6">
+                <h5 class="text-success mb-3">ASSETS</h5>
+                <table class="table table-sm">
+                    <tr>
+                        <td>Current Assets</td>
+                        <td class="text-end">TZS {{ report_data.assets.current_assets|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td>Fixed Assets</td>
+                        <td class="text-end">TZS {{ report_data.assets.fixed_assets|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td>Personal Assets</td>
+                        <td class="text-end">TZS {{ report_data.assets.personal_assets|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr class="table-success">
+                        <td><strong>Total Assets</strong></td>
+                        <td class="text-end"><strong>TZS {{ report_data.assets.total_assets|floatformat:2|intcomma }}</strong></td>
+                    </tr>
+                </table>
+                
+                <!-- Asset Details -->
+                <h6 class="mt-4">Asset Details</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Asset Name</th>
+                                <th>Type</th>
+                                <th class="text-end">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for asset in report_data.asset_details %}
+                            <tr>
+                                <td>{{ asset.name }}</td>
+                                <td><span class="badge bg-info">{{ asset.type }}</span></td>
+                                <td class="text-end">TZS {{ asset.value|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Liabilities & Net Worth -->
+            <div class="col-md-6">
+                <h5 class="text-danger mb-3">LIABILITIES & NET WORTH</h5>
+                <table class="table table-sm">
+                    <tr>
+                        <td>Current Liabilities</td>
+                        <td class="text-end">TZS {{ report_data.liabilities.current_liabilities|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td>Long-term Liabilities</td>
+                        <td class="text-end">TZS {{ report_data.liabilities.long_term_liabilities|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr class="table-danger">
+                        <td><strong>Total Liabilities</strong></td>
+                        <td class="text-end"><strong>TZS {{ report_data.liabilities.total_liabilities|floatformat:2|intcomma }}</strong></td>
+                    </tr>
+                    <tr class="table-primary">
+                        <td><strong>NET WORTH</strong></td>
+                        <td class="text-end"><strong>TZS {{ report_data.net_worth|floatformat:2|intcomma }}</strong></td>
+                    </tr>
+                </table>
+                
+                <!-- Liability Details -->
+                <h6 class="mt-4">Liability Details</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Liability Name</th>
+                                <th>Type</th>
+                                <th class="text-end">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for liability in report_data.liability_details %}
+                            <tr>
+                                <td>{{ liability.name }}</td>
+                                <td><span class="badge bg-warning">{{ liability.type }}</span></td>
+                                <td class="text-end">TZS {{ liability.balance|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Financial Health Indicator -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h5>Financial Health</h5>
+                        {% with ratio=report_data.liabilities.total_liabilities|div:report_data.assets.total_assets|mul:100 %}
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar {% if ratio < 50 %}bg-success{% elif ratio < 80 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                 style="width: {{ ratio }}%">
+                                {{ ratio|floatformat:1 }}%
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            Debt-to-Asset Ratio: {{ ratio|floatformat:1 }}%
+                            {% if ratio < 50 %}
+                            - Excellent financial health!
+                            {% elif ratio < 80 %}
+                            - Good financial health
+                            {% else %}
+                            - Consider debt reduction
+                            {% endif %}
+                        </small>
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

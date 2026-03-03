@@ -1,0 +1,35 @@
+{% extends 'general/base.html' %}
+{% load humanize %}
+{% load mathfilters %}
+
+{% block title %}Generate Comprehensive Report - Financial App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-warning text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-file-alt me-2"></i>Generate Comprehensive Report
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Report Date</label>
+                        <input type="date" name="end_date" class="form-control" required>
+                        <div class="form-text">
+                            The comprehensive report will analyze the 12-month period ending on this date.
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'financialapp:financial_reports' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-warning">Generate Comprehensive Report</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

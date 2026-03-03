@@ -1,0 +1,572 @@
+{% extends 'general/base.html' %}
+{% load humanize %}
+{% load mathfilters %}
+
+{% block title %}Income Statement - Financial App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Income Statement</h2>
+    <div>
+        <div class="btn-group">
+            <button type="button" class="btn btn-danger dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-download me-2"></i>Export
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'financialapp:export_report' report_id %}?format=pdf">
+                    <i class="fas fa-file-pdf text-danger me-2"></i>PDF Document
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'financialapp:export_report' report_id %}?format=csv">
+                    <i class="fas fa-file-csv text-success me-2"></i>CSV Spreadsheet
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'financialapp:export_report' report_id %}?format=json">
+                    <i class="fas fa-file-code text-warning me-2"></i>JSON Data
+                </a></li>
+            </ul>
+        </div>
+        <a href="{% url 'financialapp:financial_reports' %}" class="btn btn-secondary ms-2">
+            <i class="fas fa-arrow-left me-2"></i>Back to Reports
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Income Statement
+                </h4>
+                <p class="mb-0 opacity-75">
+                    For the period {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <span class="badge bg-light text-dark fs-6">
+                    {{ report_data.net_income|floatformat:0|intcomma }} TZS Net
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Key Performance Indicators -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
+                        <h6>Total Revenue</h6>
+                        <h4 class="mb-0">TZS {{ report_data.income.total|floatformat:2|intcomma }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-receipt fa-2x mb-2"></i>
+                        <h6>Total Expenses</h6>
+                        <h4 class="mb-0">TZS {{ report_data.expenses.total|floatformat:2|intcomma }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card {% if report_data.net_income >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-calculator fa-2x mb-2"></i>
+                        <h6>Net Income</h6>
+                        <h4 class="mb-0">TZS {{ report_data.net_income|floatformat:2|intcomma }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center py-3">
+                        <i class="fas fa-piggy-bank fa-2x mb-2"></i>
+                        <h6>Savings Rate</h6>
+                        <h4 class="mb-0">{{ report_data.savings_rate|floatformat:1 }}%</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Income Statement -->
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Revenue Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-arrow-down me-2"></i>Revenue
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            {% for income_type, amount in report_data.income.by_type.items %}
+                            <tr>
+                                <td class="ps-4">{{ income_type }}:</td>
+                                <td class="text-end text-success">TZS {{ amount|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="border-top border-2">
+                                <td class="ps-3"><strong>Total Revenue</strong></td>
+                                <td class="text-end"><strong class="text-success">TZS {{ report_data.income.total|floatformat:2|intcomma }}</strong></td>
+                            </tr>
+                        </table>
+
+                        <!-- Revenue Breakdown Chart -->
+                        <div class="mt-4">
+                            <h6 class="text-success mb-3">Revenue Breakdown</h6>
+                            <canvas id="revenueChart" height="150"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expenses Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-arrow-up me-2"></i>Expenses
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            {% for expense_type, amount in report_data.expenses.by_type.items %}
+                            <tr>
+                                <td class="ps-4">{{ expense_type }}:</td>
+                                <td class="text-end text-danger">TZS {{ amount|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="border-top border-2">
+                                <td class="ps-3"><strong>Total Expenses</strong></td>
+                                <td class="text-end"><strong class="text-danger">TZS {{ report_data.expenses.total|floatformat:2|intcomma }}</strong></td>
+                            </tr>
+                        </table>
+
+                        <!-- Expenses Breakdown Chart -->
+                        <div class="mt-4">
+                            <h6 class="text-danger mb-3">Expenses Breakdown</h6>
+                            <canvas id="expensesChart" height="150"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Net Income Summary -->
+                <div class="card mb-4">
+                    <div class="card-header {% if report_data.net_income >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-balance-scale me-2"></i>Net Income Summary
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <h6 class="text-success">Total Revenue</h6>
+                                <h3 class="text-success">TZS {{ report_data.income.total|floatformat:2|intcomma }}</h3>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-danger">Total Expenses</h6>
+                                <h3 class="text-danger">TZS {{ report_data.expenses.total|floatformat:2|intcomma }}</h3>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="{% if report_data.net_income >= 0 %}text-primary{% else %}text-warning{% endif %}">Net Income</h6>
+                                <h3 class="{% if report_data.net_income >= 0 %}text-primary{% else %}text-warning{% endif %}">
+                                    TZS {{ report_data.net_income|floatformat:2|intcomma }}
+                                </h3>
+                            </div>
+                        </div>
+
+                        <!-- Savings Rate Progress -->
+                        <div class="mt-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Savings Rate</span>
+                                <strong>{{ report_data.savings_rate|floatformat:1 }}%</strong>
+                            </div>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar 
+                                    {% if report_data.savings_rate >= 20 %}bg-success
+                                    {% elif report_data.savings_rate >= 10 %}bg-info
+                                    {% else %}bg-warning{% endif %}" 
+                                    style="width: {{ report_data.savings_rate }}%">
+                                    {{ report_data.savings_rate|floatformat:1 }}%
+                                </div>
+                            </div>
+                            <small class="text-muted mt-2 d-block">
+                                {% if report_data.savings_rate >= 20 %}
+                                <i class="fas fa-check-circle text-success me-1"></i>
+                                Excellent savings rate! You're saving more than 20% of your income.
+                                {% elif report_data.savings_rate >= 10 %}
+                                <i class="fas fa-info-circle text-info me-1"></i>
+                                Good savings rate. Consider aiming for 20% or higher.
+                                {% else %}
+                                <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                                Low savings rate. Look for opportunities to reduce expenses or increase income.
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar - Analysis & Insights -->
+            <div class="col-lg-4">
+                <!-- Profitability Analysis -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>Profitability Analysis
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <small class="text-muted">Profit Margin</small>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Efficiency</span>
+                                <strong class="text-primary">
+                                    {% with margin=report_data.net_income|div:report_data.income.total|mul:100 %}
+                                    {{ margin|floatformat:1 }}%
+                                    {% endwith %}
+                                </strong>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <small class="text-muted">Expense Ratio</small>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Cost Control</span>
+                                <strong class="text-danger">
+                                    {% with ratio=report_data.expenses.total|div:report_data.income.total|mul:100 %}
+                                    {{ ratio|floatformat:1 }}%
+                                    {% endwith %}
+                                </strong>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <small class="text-muted">Financial Health</small>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Status</span>
+                                <strong class="{% if report_data.net_income >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {% if report_data.net_income >= 0 %}Profitable{% else %}Loss Making{% endif %}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Income Sources -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-trophy me-2"></i>Top Income Sources
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% for income_type, amount in report_data.income.by_type.items|dictsortreversed:1|slice:":3" %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small">{{ income_type }}</span>
+                            <strong class="text-success">TZS {{ amount|floatformat:2|intcomma }}</strong>
+                        </div>
+                        <div class="progress mb-3" style="height: 6px;">
+                            {% with percentage=amount|div:report_data.income.total|mul:100 %}
+                            <div class="progress-bar bg-success" style="width: {{ percentage }}%"></div>
+                            {% endwith %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Largest Expenses -->
+                <div class="card mb-4">
+                    <div class="card-header bg-danger text-white">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Largest Expenses
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% for expense_type, amount in report_data.expenses.by_type.items|dictsortreversed:1|slice:":3" %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small">{{ expense_type }}</span>
+                            <strong class="text-danger">TZS {{ amount|floatformat:2|intcomma }}</strong>
+                        </div>
+                        <div class="progress mb-3" style="height: 6px;">
+                            {% with percentage=amount|div:report_data.expenses.total|mul:100 %}
+                            <div class="progress-bar bg-danger" style="width: {{ percentage }}%"></div>
+                            {% endwith %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-lightbulb me-2"></i>Recommendations
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% if report_data.net_income > 0 %}
+                            {% if report_data.savings_rate >= 20 %}
+                            <div class="alert alert-success small mb-2">
+                                <i class="fas fa-star me-2"></i>
+                                <strong>Excellent!</strong> Maintain your current savings rate.
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info small mb-2">
+                                <i class="fas fa-bullseye me-2"></i>
+                                <strong>Good progress.</strong> Aim for 20% savings rate.
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="alert alert-warning small mb-2">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Attention needed.</strong> Focus on reducing expenses.
+                            </div>
+                        {% endif %}
+
+                        <ul class="small text-muted mb-0">
+                            {% if report_data.net_income <= 0 %}
+                            <li>Review and reduce largest expenses</li>
+                            <li>Explore additional income sources</li>
+                            {% endif %}
+                            <li>Monitor income and expenses monthly</li>
+                            <li>Set savings goals and track progress</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Period Information -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-calendar me-2"></i>Period Information
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div class="mb-2">
+                                <strong>Reporting Period:</strong><br>
+                                {{ start_date|date:"M j, Y" }} to {{ end_date|date:"M j, Y" }}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Duration:</strong><br>
+                                {{ start_date|timesince:end_date }}
+                            </div>
+                            <div>
+                                <strong>Report Generated:</strong><br>
+                                {{ report.generated_at|date:"M j, Y \\a\\t g:i A" }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Income vs Expenses Comparison -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>Income vs Expenses Comparison
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="incomeExpenseComparison" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Revenue Breakdown Chart (Doughnut)
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    const revenueData = {
+        labels: [{% for income_type, amount in report_data.income.by_type.items %}'{{ income_type }}',{% endfor %}],
+        datasets: [{
+            data: [{% for income_type, amount in report_data.income.by_type.items %}{{ amount }},{% endfor %}],
+            backgroundColor: [
+                '#28a745', '#20c997', '#17a2b8', '#6f42c1', '#e83e8c',
+                '#fd7e14', '#ffc107', '#6610f2', '#d63384', '#0dcaf0'
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    };
+    
+    new Chart(revenueCtx, {
+        type: 'doughnut',
+        data: revenueData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: TZS ${value.toLocaleString()} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Expenses Breakdown Chart (Pie)
+    const expensesCtx = document.getElementById('expensesChart').getContext('2d');
+    const expensesData = {
+        labels: [{% for expense_type, amount in report_data.expenses.by_type.items %}'{{ expense_type }}',{% endfor %}],
+        datasets: [{
+            data: [{% for expense_type, amount in report_data.expenses.by_type.items %}{{ amount }},{% endfor %}],
+            backgroundColor: [
+                '#dc3545', '#fd7e14', '#ffc107', '#6610f2', '#6f42c1',
+                '#e83e8c', '#20c997', '#0dcaf0', '#198754', '#0d6efd'
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    };
+    
+    new Chart(expensesCtx, {
+        type: 'pie',
+        data: expensesData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: TZS ${value.toLocaleString()} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Income vs Expenses Comparison Chart (Bar)
+    const comparisonCtx = document.getElementById('incomeExpenseComparison').getContext('2d');
+    const comparisonData = {
+        labels: ['Income vs Expenses'],
+        datasets: [
+            {
+                label: 'Total Income',
+                data: [{{ report_data.income.total }}],
+                backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                borderColor: 'rgb(40, 167, 69)',
+                borderWidth: 2
+            },
+            {
+                label: 'Total Expenses',
+                data: [{{ report_data.expenses.total }}],
+                backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                borderColor: 'rgb(220, 53, 69)',
+                borderWidth: 2
+            },
+            {
+                label: 'Net Income',
+                data: [{{ report_data.net_income }}],
+                backgroundColor: 'rgba(13, 110, 253, 0.8)',
+                borderColor: 'rgb(13, 110, 253)',
+                borderWidth: 2
+            }
+        ]
+    };
+    
+    new Chart(comparisonCtx, {
+        type: 'bar',
+        data: comparisonData,
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'TZS ' + value.toLocaleString();
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += 'TZS ' + context.parsed.y.toLocaleString();
+                            }
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Add animation to cards
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+.table-borderless td {
+    border: none;
+    padding: 0.5rem 0.25rem;
+}
+.bg-light-success {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+}
+.bg-light-danger {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+.bg-light-primary {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
+.progress {
+    border-radius: 10px;
+}
+.progress-bar {
+    border-radius: 10px;
+    transition: width 1s ease-in-out;
+}
+</style>
+{% endblock %}

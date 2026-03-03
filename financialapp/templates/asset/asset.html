@@ -1,0 +1,223 @@
+{% extends 'general/base.html' %}
+{% load humanize %}
+{% load mathfilters %}
+
+{% block title %}Assets - Financial App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Assets</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAssetModal"
+        hx-get="{% url 'financialapp:asset_create' %}"
+        hx-target="#crud-asset"
+        hx-swap="outerHTML"
+        hx-trigger="click"
+    
+    >
+        <i class="fas fa-plus me-2"></i>Add Asset
+    </button>
+</div>
+
+<!-- Asset Summary -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h6 class="card-title">Total Assets</h6>
+                <h3>TZS {{ total_assets|floatformat:2|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h6 class="card-title">Income Generating</h6>
+                <h3>TZS {{ income_assets|floatformat:2|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h6 class="card-title">Liquid Assets</h6>
+                <h3>TZS {{ liquid_assets|floatformat:2|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h6 class="card-title">Monthly Asset Income</h6>
+                <h3>TZS {{ monthly_asset_income|floatformat:2|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+
+         <!-- Pagination Info -->
+        {% include 'general/pagination_info.html' %}
+
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Asset Name</th>
+                        <th>Type</th>
+                        <th>Current Value</th>
+                        <th>Purchase Price</th>
+                        <th>Monthly Income</th>
+                        <th>Growth</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asset in obj %}
+                    <tr>
+                        <td>
+                            <strong>{{ asset.name }}</strong>
+                            {% if asset.generates_income %}
+                                <span class="badge bg-success ms-1">Income</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ asset.asset_type.name }}</td>
+                        <td class="fw-bold text-success">TZS {{ asset.current_value|floatformat:2|intcomma }}</td>
+                        <td>
+                            {% if asset.purchase_price %}
+                                TZS {{ asset.purchase_price|floatformat:2|intcomma }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-info">
+                            {% if asset.monthly_income %}
+                                TZS {{ asset.monthly_income|floatformat:2|intcomma }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if asset.purchase_price and asset.current_value %}
+                                {% with growth=asset.current_value|add:0|sub:asset.purchase_price %}
+                                {% with percent=growth|div:asset.purchase_price|mul:100 %}
+                                <span class="badge {% if percent > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ percent|floatformat:1 }}%
+                                </span>
+                                {% endwith %}
+                                {% endwith %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addAssetModal"
+                                hx-get="{% url 'financialapp:asset_edit' asset.id %}"
+                                hx-target="#crud-asset"
+                                hx-swap="outerHTML"
+                                hx-trigger="click"
+                            >
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'financialapp:asset_delete' asset.id %}" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <i class="fas fa-home fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No assets recorded yet.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% include 'general/pagination.html' %}
+    </div>
+</div>
+
+<!-- Add Asset Modal -->
+<div class="modal fade" id="addAssetModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" id="crud-asset">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Asset</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'financialapp:asset_create' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Asset Name</label>
+                                <input type="text" name="name" class="form-control" placeholder="e.g., Rental House, Car, Savings Account" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Asset Type</label>
+                                <select name="asset_type" class="form-select" required>
+                                    <option value="">Select type...</option>
+                                    {% for type in asset_types %}
+                                    <option value="{{ type.id }}">{{ type.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Current Value (TZS)</label>
+                                <input type="number" name="current_value" class="form-control" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Purchase Price (TZS)</label>
+                                <input type="number" name="purchase_price" class="form-control" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Purchase Date</label>
+                                <input type="date" name="purchase_date" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Monthly Income (TZS)</label>
+                                <input type="number" name="monthly_income" class="form-control" step="0.01" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Describe the asset..."></textarea>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="generates_income">
+                        <label class="form-check-label">This asset generates income</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Asset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

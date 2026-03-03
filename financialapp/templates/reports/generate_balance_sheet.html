@@ -1,0 +1,619 @@
+{% extends 'general/base.html' %}
+{% load humanize %}
+{% load mathfilters %}
+
+{% block title %}Generate Balance Sheet - Financial App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-balance-scale me-2"></i>Generate Balance Sheet
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    A balance sheet provides a snapshot of your financial position at a specific point in time. 
+                    It shows what you own (assets), what you owe (liabilities), and your net worth.
+                </p>
+
+                <form method="post" id="balanceSheetForm">
+                    {% csrf_token %}
+                    
+                    <!-- Report Configuration -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-calendar me-2"></i>Report Date
+                                    </h6>
+                                    <div class="mb-3">
+                                        <label for="end_date" class="form-label">As of Date</label>
+                                        <input type="date" 
+                                               name="end_date" 
+                                               id="end_date" 
+                                               class="form-control" 
+                                               value="{{ current_date|date:'Y-m-d' }}"
+                                               max="{{ current_date|date:'Y-m-d' }}"
+                                               required>
+                                        <div class="form-text">
+                                            The date for which you want the balance sheet snapshot.
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Quick Date Selection -->
+                                    <div class="mt-3">
+                                        <label class="form-label">Quick Select:</label>
+                                        <div class="btn-group w-100" role="group">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDate('today')">
+                                                Today
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDate('month_end')">
+                                                Month End
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDate('year_end')">
+                                                Year End
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-cog me-2"></i>Report Options
+                                    </h6>
+                                    
+                                    <!-- Output Format -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Output Format</label>
+                                        <select name="format" class="form-select">
+                                            <option value="html" selected>Web View (HTML)</option>
+                                            <option value="pdf">PDF Document</option>
+                                        </select>
+                                        <div class="form-text">
+                                            Choose how you want to view the report.
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Include Details -->
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" name="include_details" id="include_details" checked>
+                                        <label class="form-check-label" for="include_details">
+                                            Include asset and liability details
+                                        </label>
+                                    </div>
+                                    
+                                    <!-- Show Calculations -->
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" name="show_calculations" id="show_calculations">
+                                        <label class="form-check-label" for="show_calculations">
+                                            Show financial ratios
+                                        </label>
+                                    </div>
+
+                                    <!-- Currency Format -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Currency Format</label>
+                                        <select name="currency_format" class="form-select">
+                                            <option value="tzs" selected>Tanzanian Shillings (TZS)</option>
+                                            <option value="usd">US Dollars (USD)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Financial Position Preview -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-eye me-2"></i>Current Financial Position Preview
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-success mb-3">Assets Preview</h6>
+                                    <table class="table table-sm table-borderless">
+                                        <tr>
+                                            <td>Current Assets:</td>
+                                            <td class="text-end"><strong id="previewCurrentAssets">TZS {{ current_assets|floatformat:2|intcomma }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Fixed Assets:</td>
+                                            <td class="text-end"><strong id="previewFixedAssets">TZS {{ fixed_assets|floatformat:2|intcomma }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Personal Assets:</td>
+                                            <td class="text-end"><strong id="previewPersonalAssets">TZS {{ personal_assets|floatformat:2|intcomma }}</strong></td>
+                                        </tr>
+                                        <tr class="border-top">
+                                            <td><strong>Total Assets:</strong></td>
+                                            <td class="text-end"><strong class="text-success" id="previewTotalAssets">TZS {{ total_assets|floatformat:2|intcomma }}</strong></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h6 class="text-danger mb-3">Liabilities & Net Worth Preview</h6>
+                                    <table class="table table-sm table-borderless">
+                                        <tr>
+                                            <td>Current Liabilities:</td>
+                                            <td class="text-end"><strong id="previewCurrentLiabilities">TZS {{ current_liabilities|floatformat:2|intcomma }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Long-term Liabilities:</td>
+                                            <td class="text-end"><strong id="previewLongTermLiabilities">TZS {{ long_term_liabilities|floatformat:2|intcomma }}</strong></td>
+                                        </tr>
+                                        <tr class="border-top">
+                                            <td><strong>Total Liabilities:</strong></td>
+                                            <td class="text-end"><strong class="text-danger" id="previewTotalLiabilities">TZS {{ total_liabilities|floatformat:2|intcomma }}</strong></td>
+                                        </tr>
+                                        <tr class="border-top">
+                                            <td><strong>Net Worth:</strong></td>
+                                            <td class="text-end"><strong class="text-primary" id="previewNetWorth">TZS {{ net_worth|floatformat:2|intcomma }}</strong></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Financial Health Indicator -->
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h6 class="mb-3">Financial Health Indicator</h6>
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span>Debt-to-Asset Ratio</span>
+                                                <strong id="previewDebtRatio">{{ debt_ratio|floatformat:1 }}%</strong>
+                                            </div>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar 
+                                                    {% if debt_ratio < 30 %}bg-success
+                                                    {% elif debt_ratio < 50 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}" 
+                                                    style="width: {{ debt_ratio }}%"
+                                                    id="previewDebtProgress">
+                                                    {{ debt_ratio|floatformat:1 }}%
+                                                </div>
+                                            </div>
+                                            <small class="text-muted mt-2 d-block" id="previewDebtInterpretation">
+                                                {% if debt_ratio < 30 %}
+                                                <i class="fas fa-check-circle text-success me-1"></i>
+                                                Excellent! Low debt levels indicate strong financial health.
+                                                {% elif debt_ratio < 50 %}
+                                                <i class="fas fa-info-circle text-warning me-1"></i>
+                                                Manageable debt level. Consider paying down high-interest debt.
+                                                {% else %}
+                                                <i class="fas fa-exclamation-triangle text-danger me-1"></i>
+                                                High debt level. Focus on debt reduction strategies.
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Asset and Liability Breakdown -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-home me-2"></i>Your Assets Breakdown
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if assets %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Asset</th>
+                                                    <th>Type</th>
+                                                    <th class="text-end">Value</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for asset in assets %}
+                                                <tr>
+                                                    <td>
+                                                        <small class="fw-bold">{{ asset.name }}</small>
+                                                        {% if asset.description %}
+                                                        <br>
+                                                        <small class="text-muted">{{ asset.description|truncatewords:5 }}</small>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-secondary">{{ asset.asset_type.name }}</span>
+                                                        {% if asset.generates_income %}
+                                                        <span class="badge bg-success ms-1">Income</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <strong>TZS {{ asset.current_value|floatformat:2|intcomma }}</strong>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr class="table-success">
+                                                    <td colspan="2"><strong>Total Assets</strong></td>
+                                                    <td class="text-end"><strong>TZS {{ total_assets|floatformat:2|intcomma }}</strong></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-home fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted mb-0">No assets recorded yet.</p>
+                                        <small class="text-muted">Add your assets to see them here.</small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-danger text-white">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-credit-card me-2"></i>Your Liabilities Breakdown
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if liabilities %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Liability</th>
+                                                    <th>Type</th>
+                                                    <th class="text-end">Balance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for liability in liabilities %}
+                                                <tr>
+                                                    <td>
+                                                        <small class="fw-bold">{{ liability.name }}</small>
+                                                        {% if liability.lender %}
+                                                        <br>
+                                                        <small class="text-muted">Lender: {{ liability.lender }}</small>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-secondary">{{ liability.liability_type.name }}</span>
+                                                        {% if liability.interest_rate > 0 %}
+                                                        <span class="badge bg-warning ms-1">{{ liability.interest_rate }}%</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <strong>TZS {{ liability.current_balance|floatformat:2|intcomma }}</strong>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr class="table-danger">
+                                                    <td colspan="2"><strong>Total Liabilities</strong></td>
+                                                    <td class="text-end"><strong>TZS {{ total_liabilities|floatformat:2|intcomma }}</strong></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted mb-0">No liabilities recorded.</p>
+                                        <small class="text-muted">That's great! You're debt-free.</small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asset Allocation Chart Preview -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-chart-pie me-2"></i>Asset Allocation Preview
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <canvas id="assetAllocationChart" height="200"></canvas>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span class="badge bg-success">Current Assets</span>
+                                        <strong>TZS {{ current_assets|floatformat:2|intcomma }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span class="badge bg-primary">Fixed Assets</span>
+                                        <strong>TZS {{ fixed_assets|floatformat:2|intcomma }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span class="badge bg-warning">Personal Assets</span>
+                                        <strong>TZS {{ personal_assets|floatformat:2|intcomma }}</strong>
+                                    </div>
+                                    <div class="mt-4">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            This shows how your assets are distributed across different categories.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'financialapp:financial_reports' %}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Reports
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="generateBtn">
+                            <i class="fas fa-cog me-2"></i>Generate Balance Sheet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-question-circle me-2"></i>About Balance Sheets
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>What is a Balance Sheet?</h6>
+                        <p class="small text-muted">
+                            A balance sheet is a financial statement that shows your financial position at a specific point in time. 
+                            It follows the fundamental accounting equation: <strong>Assets = Liabilities + Net Worth</strong>.
+                        </p>
+                        <ul class="small text-muted">
+                            <li><strong>Assets:</strong> What you own (cash, properties, investments)</li>
+                            <li><strong>Liabilities:</strong> What you owe (loans, debts, mortgages)</li>
+                            <li><strong>Net Worth:</strong> Your true wealth (Assets minus Liabilities)</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Why is it Important?</h6>
+                        <ul class="small text-muted">
+                            <li>Shows your current financial position</li>
+                            <li>Helps track progress toward financial goals</li>
+                            <li>Essential for loan applications and financial planning</li>
+                            <li>Identifies debt levels and asset allocation</li>
+                            <li>Provides basis for financial ratio analysis</li>
+                        </ul>
+                        <div class="alert alert-info small mt-3">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>Tip:</strong> Generate balance sheets regularly (monthly or quarterly) to track your financial progress.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set current date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('end_date').value = today;
+    
+    // Initialize asset allocation chart
+    initializeAssetChart();
+
+    // Add event listeners for real-time updates
+    document.getElementById('end_date').addEventListener('change', function() {
+        updatePreview();
+    });
+});
+
+// Quick date selection functions
+function setDate(type) {
+    const dateField = document.getElementById('end_date');
+    const today = new Date();
+    
+    switch(type) {
+        case 'today':
+            dateField.value = today.toISOString().split('T')[0];
+            break;
+        case 'month_end':
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            dateField.value = lastDay.toISOString().split('T')[0];
+            break;
+        case 'year_end':
+            dateField.value = today.getFullYear() + '-12-31';
+            break;
+    }
+    
+    updatePreview();
+}
+
+// Initialize Asset Allocation Chart
+function initializeAssetChart() {
+    const ctx = document.getElementById('assetAllocationChart').getContext('2d');
+    
+    const assetData = {
+        labels: ['Current Assets', 'Fixed Assets', 'Personal Assets'],
+        datasets: [{
+            data: [{{ current_assets }}, {{ fixed_assets }}, {{ personal_assets }}],
+            backgroundColor: [
+                'rgba(40, 167, 69, 0.8)',
+                'rgba(0, 123, 255, 0.8)',
+                'rgba(255, 193, 7, 0.8)'
+            ],
+            borderColor: [
+                'rgb(40, 167, 69)',
+                'rgb(0, 123, 255)',
+                'rgb(255, 193, 7)'
+            ],
+            borderWidth: 2
+        }]
+    };
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: assetData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: TZS ${value.toLocaleString()} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update preview with current data (for future enhancement with AJAX)
+function updatePreview() {
+    // This function can be enhanced to fetch updated data via AJAX
+    // For now, it uses the server-side calculated values
+    console.log('Date changed to:', document.getElementById('end_date').value);
+    
+    // In a real implementation, you would:
+    // 1. Fetch updated financial data via AJAX
+    // 2. Update all preview elements with new data
+    // 3. Re-render charts with updated data
+}
+
+// Form validation and submission
+document.getElementById('balanceSheetForm').addEventListener('submit', function(e) {
+    const endDate = new Date(document.getElementById('end_date').value);
+    const today = new Date();
+    
+    // Reset any previous validation
+    this.classList.remove('was-validated');
+    
+    // Validate date is not in future
+    if (endDate > today) {
+        e.preventDefault();
+        showAlert('The balance sheet date cannot be in the future. Please select a valid date.', 'danger');
+        document.getElementById('end_date').focus();
+        return false;
+    }
+    
+    // Validate we have at least some financial data
+    const totalAssets = {{ total_assets }};
+    if (totalAssets === 0) {
+        const proceed = confirm('You don\'t have any assets recorded. The balance sheet will show zero values. Do you want to continue?');
+        if (!proceed) {
+            e.preventDefault();
+            return false;
+        }
+    }
+    
+    // Show loading state
+    const generateBtn = document.getElementById('generateBtn');
+    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+    generateBtn.disabled = true;
+    
+    // Add slight delay to show loading state
+    setTimeout(() => {
+        generateBtn.disabled = false;
+    }, 2000);
+});
+
+// Utility function to show alerts
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const form = document.getElementById('balanceSheetForm');
+    form.parentNode.insertBefore(alertDiv, form);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+        }
+    }, 5000);
+}
+
+// Add some interactivity to form elements
+document.querySelectorAll('.form-check-input').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const card = this.closest('.card');
+        if (this.checked) {
+            card.classList.add('border-primary');
+        } else {
+            card.classList.remove('border-primary');
+        }
+    });
+});
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+.badge {
+    font-size: 0.7em;
+}
+.table-borderless td {
+    border: none;
+    padding: 0.5rem 0.25rem;
+}
+.border-primary {
+    border: 2px solid #0d6efd !important;
+}
+.progress {
+    border-radius: 10px;
+}
+.progress-bar {
+    border-radius: 10px;
+    transition: width 1s ease-in-out;
+}
+.alert {
+    border-radius: 10px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends 'general/base.html' %}
+{% load humanize %}
+{% load mathfilters %}
+
+{% block title %}Liabilities - Financial App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Liabilities</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLiabilityModal"
+        hx-get="{% url 'financialapp:liability_create' %}"
+        hx-target="#crud-liability"
+        hx-swap="outerHTML"
+        hx-trigger="click"
+    >
+        <i class="fas fa-plus me-2"></i>Add Liability
+    </button>
+</div>
+
+<!-- Liability Summary -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <h6 class="card-title">Total Debt</h6>
+                <h3>TZS {{ total_debt|floatformat:2|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h6 class="card-title">Monthly Payments</h6>
+                <h3>TZS {{ monthly_payments|floatformat:2|intcomma }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h6 class="card-title">Interest Cost</h6>
+                <h3>TZS {{ monthly_interest|floatformat:2|intcomma }}/month</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <!-- Pagination Info -->
+        {% include 'general/pagination_info.html' %}
+
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Liability Name</th>
+                        <th>Type</th>
+                        <th>Current Balance</th>
+                        <th>Original Amount</th>
+                        <th>Interest Rate</th>
+                        <th>Monthly Payment</th>
+                        <th>Progress</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for liability in obj %}
+                    <tr>
+                        <td>
+                            <strong>{{ liability.name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ liability.lender }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ liability.liability_type.pill_color|lower }}">
+                                {{ liability.liability_type.name }}
+                            </span>
+                        </td>
+                        <td class="fw-bold text-danger">TZS {{ liability.current_balance|floatformat:2|intcomma }}</td>
+                        <td>TZS {{ liability.original_amount|floatformat:2|intcomma }}</td>
+                        <td>
+                            {% if liability.interest_rate %}
+                                <span class="badge bg-warning">{{ liability.interest_rate }}%</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-info">TZS {{ liability.monthly_payment|floatformat:2|intcomma }}</td>
+                        <td>
+                            <div class="progress" style="height: 8px;">
+                                {% with progress=liability.current_balance|div:liability.original_amount|mul:100 %}
+                                <div class="progress-bar bg-{% if progress < 50 %}success{% elif progress < 80 %}warning{% else %}danger{% endif %}" 
+                                     style="width: {{ progress }}%">
+                                </div>
+                                {% endwith %}
+                            </div>
+                            <small class="text-muted">
+                                {% with progress=liability.current_balance|div:liability.original_amount|mul:100 %}
+                                {{ progress|floatformat:1 }}% remaining
+                                {% endwith %}
+                            </small>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addLiabilityModal"
+                                hx-get="{% url 'financialapp:liability_edit' liability.id %}"
+                                hx-target="#crud-liability"
+                                hx-swap="outerHTML"
+                                hx-trigger="click"
+                            >
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <a href="{% url 'financialapp:liability_delete' liability.id %}" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No liabilities recorded. That's great!</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+         {% include 'general/pagination.html' %}
+    </div>
+</div>
+
+<!-- Add Liability Modal -->
+<div class="modal fade" id="addLiabilityModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" id="crud-liability">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Liability</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'financialapp:liability_create' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Liability Name</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g., SACCO Loan, Car Loan" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Liability Type</label>
+                                <select name="liability_type" class="form-select" required>
+                                    <option value="">Select type...</option>
+                                    {% for type in liability_types %}
+                                    <option value="{{ type.id }}">{{ type.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Lender</label>
+                                <input type="text" name="lender" class="form-control" placeholder="e.g., CRDB, Hazina SACCO">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Original Amount (TZS)</label>
+                                <input type="number" name="original_amount" class="form-control" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Current Balance (TZS)</label>
+                                <input type="number" name="current_balance" class="form-control" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Interest Rate (%)</label>
+                                <input type="number" name="interest_rate" class="form-control" step="0.01" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Monthly Payment (TZS)</label>
+                                <input type="number" name="monthly_payment" class="form-control" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" name="due_date" class="form-control">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Any additional details..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Liability</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

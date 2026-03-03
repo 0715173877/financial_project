@@ -1,0 +1,59 @@
+
+<nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+    <div class="position-sticky pt-3">
+        <h4 class="text-white text-center mb-4">
+            <i class="fas fa-chart-line"></i> Financial App
+        </h4>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" 
+                    href="{% url 'financialapp:dashboard' %}">
+                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'income_list' %}active{% endif %}" 
+                    href="{% url 'financialapp:income_list' %}">
+                    <i class="fas fa-money-bill-wave me-2"></i>Income
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'expense_list' %}active{% endif %}" 
+                    href="{% url 'financialapp:expense_list' %}">
+                    <i class="fas fa-receipt me-2"></i>Expenses
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'asset_list' %}active{% endif %}" 
+                    href="{% url 'financialapp:asset_list' %}">
+                    <i class="fas fa-home me-2"></i>Assets
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'liability_list' %}active{% endif %}" 
+                    href="{% url 'financialapp:liability_list' %}">
+                    <i class="fas fa-credit-card me-2"></i>Liabilities
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'cash_flow' %}active{% endif %}" 
+                    href="{% url 'financialapp:cash_flow' %}">
+                    <i class="fas fa-chart-bar me-2"></i>Cash Flow
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'financial_reports' %}active{% endif %}" 
+                    href="{% url 'financialapp:financial_reports' %}">
+                    <i class="fas fa-file-alt me-2"></i>Reports
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'sms_create' %}active{% endif %}" 
+                    href="{% url 'financialapp:sms_create' %}">
+                    <i class="fas fa-file-alt me-2"></i>SMS
+                </a>
+            </li>
+        </ul>
+
+    </div>
+</nav>

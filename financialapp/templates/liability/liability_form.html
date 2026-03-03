@@ -1,0 +1,70 @@
+ {% load custom_tags %}
+{% load widget_tweaks %}
+ 
+ <div class="modal-content" id="crud-liability">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="window.location.reload()"></button>
+    </div>
+    <form method="post" {% if pk %} action="{% url 'financialapp:liability_edit' pk %}"  {% else %}  action="{% url 'financialapp:liability_create' %}" {% endif %}>
+        {% csrf_token %}
+        <div class="modal-body">
+           
+            <div class="row">
+                        {% for field in form %}
+                            {% if field|is_charfield_200 %}
+                                <div class="col-md-12">
+                                    {% if field|is_checkbox %}
+                                        <div class="mb-3">
+                                            <label class="form-label">{{ field.label }}</label>
+                                            {{ field|add_class:"form-check-input" }}
+                                        </div>
+                                    {% else %}
+                                        <div class="mb-3">
+                                            <label class="form-label">{{ field.label }}</label>
+                                            {{ field|add_class:"form-control" }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                {% if field.name == 'liability_type' %}
+                                <div class="col-md-12">
+                                    {% if field|is_checkbox %}
+                                            <div class="mb-3">
+                                                <label class="form-label">{{ field.label }}</label>
+                                                {{ field|add_class:"form-check-input" }}
+                                            </div>
+                                        {% else %}
+                                            <div class="mb-3">
+                                                <label class="form-label">{{ field.label }}</label>
+                                                {{ field|add_class:"form-control" }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                {% else %}
+                                    <div class="col-md-6">
+                                    {% if field|is_checkbox %}
+                                            <div class="mb-3">
+                                                <label class="form-label">{{ field.label }}</label>
+                                                {{ field|add_class:"form-check-input" }}
+                                            </div>
+                                        {% else %}
+                                            <div class="mb-3">
+                                                <label class="form-label">{{ field.label }}</label>
+                                                {{ field|add_class:"form-control" }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="window.location.reload()">Cancel</button>
+            <button type="submit" class="btn btn-primary">{{ title }}</button>
+        </div>
+    </form>
+</div>

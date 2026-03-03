@@ -1,0 +1,17 @@
+asgiref==3.10.0
+charset-normalizer==3.4.4
+Django==5.2.7
+django-dbbackup==5.0.0
+django-environ==0.12.0
+django-mathfilters==1.0.0
+django-postgres-extra==2.0.9
+django-pwa==2.0.1
+django-widget-tweaks==1.5.0
+pillow==11.3.0
+psycopg2==2.9.11
+psycopg2-binary==2.9.11
+python-dateutil==2.9.0.post0
+python-dotenv==1.1.1
+reportlab==4.4.4
+six==1.17.0
+sqlparse==0.5.3
